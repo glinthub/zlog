@@ -1,0 +1,5 @@
+#!/bin/bash
+
+gcc -lpthread files/zlogd.c -o zlogd &&
+gcc -DMAIN=main files/zlogc.c -o zlogc &&
+cp -v zlogc zlogd /lab/testtools/dallas/testRelease/ezohenz/tools/
