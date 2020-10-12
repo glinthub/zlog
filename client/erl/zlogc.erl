@@ -151,10 +151,6 @@ log_null(_Fmt, _Args) ->
 log_io(Fmt, Args) ->
 	io:format("~s: " ++ Fmt ++ "~n", [make_timestamp() | Args]).
 
-%% log using msg_trace 
-log_dallas(Fmt, Args) ->
-	msg_trace:warning(zws, Fmt, Args).
-
 %% log to /tmp/zlog
 log_file(Fmt, Args) ->
 	{ok, IoDevice} = file:open("/tmp/zlog", [write,append]),
