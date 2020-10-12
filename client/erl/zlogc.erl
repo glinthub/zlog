@@ -1,8 +1,21 @@
 -module(zlogc).
+
+-include("zlogc.hrl").
+
+-export([
+	debug/3,
+	info/3,
+	event/3,
+	error/3,
+	warning/3,
+	critical/3
+]).
+
 -export([
 		 init/0, 
 		 init_db/0, 
-		 main/0, 
+		 zlogc_task/0, 
+		 main/1,
 		 log_null/2, 
 		 log_io/2, 
 		 log_dallas/2, 
@@ -11,28 +24,40 @@
 		 log_by_id/3,
 		 get_id_trace/1,
 		 set_id_trace/1,
-		 log_st/0,
-		 test/0,
-		 get_local_dpn_list/0,
-		 is_local_dp/1
+		 get_st/0,
+		 test/0
 		]).
--define(ZLOGF(Fmt, Args), zlogc:log_file("~w, ~w ~w:~w, ln ~w, " ++ Fmt, [node(), self(), ?MODULE, ?FUNCTION_NAME, ?LINE] ++ Args)).
--define(ZLOGU(Fmt, Args), zlogc:log_udp("~w, ~w ~w:~w, ln ~w, " ++ Fmt, [node(), self(), ?MODULE, ?FUNCTION_NAME, ?LINE] ++ Args)).
--define(ZLOGM(_Module, Fmt, Args), zlogc:log_file("~w ~w, ~w ~w:~w, ln ~w, " ++ Fmt, [node(), self(), ?MODULE, ?FUNCTION_NAME, ?LINE] ++ Args)).
--define(ZLOG_ID(Id, Fmt, Args), zlogc:log_by_id(Id, "~w, pid ~w, ~w:~w, ln ~w, " ++ Fmt, [node(), self(), ?MODULE, ?FUNCTION_NAME, ?LINE] ++ Args)).
 
 -define(ZLOGC_PROC, zlogc_proc).
 
+debug(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
+
+info(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
+
+event(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
+
+error(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
+
+warning(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
+
+critical(_Logkey, Fmt, Args) ->
+	log_udp(Fmt, Args).
 
 init() ->
 	case whereis(?ZLOGC_PROC) of
 		undefined ->
 			%%log_file("init proc", []),
-			Pid = spawn(?MODULE, main, []),
+			Pid = spawn(?MODULE, zlogc_task, []),
 			register(?ZLOGC_PROC, Pid),
 
 			timer:sleep(100),
-			log_io("~w: zlog client initiated. ~n", [node()]);
+%%			log_io("~w: zlog client initiated. ~n", [node()]);
+			ok;
 		_Pid ->
 			do_nothing
 	end.
@@ -41,7 +66,7 @@ init_db() ->
 	%%log_file("init db", []),
 	ets:new(zlog_db, [public, named_table]).
 
-main() ->
+zlogc_task() ->
 	init_db(),
 	case get(socket) of
 		undefined ->
@@ -50,21 +75,27 @@ main() ->
 		Socket ->
 			void
 	end,
-	CsHost = os:cmd("pgrep dpn -a | sed -e 's/.*--l \\([^ ]\\+\\) .*/\\1/g'"),
-	CsAddr = lists:subtract(CsHost, "\n"),
-	loop(Socket, CsAddr).
+	%CsHost = "selnpctool-071-02-001",
+	CsHost = "localhost",
+	zlogc_loop(Socket, CsHost, 0).
 
-loop(Socket, CsAddr) ->
+zlogc_loop(Socket, CsAddr, Seq) ->
 	receive
+		exit ->
+			exit;
 		Str ->
-			log_null("~w received msg: ~w ~n", [self(), Str]),
-			case gen_udp:send(Socket, CsAddr, 8888, Str) of
+			SeqInsertedStr = "[" ++ erlang:integer_to_list(Seq) ++ "] " ++ Str,
+			log_null("~w received msg: ~w ~n", [self(), SeqInsertedStr]),
+			case gen_udp:send(Socket, CsAddr, 8888, SeqInsertedStr) of
 				{error, Reason} ->
 					log_io("udp send failed: ~w ~n", [Reason]);
 				ok ->
 					ok
 			end,
-			loop(Socket, CsAddr)
+			zlogc_loop(Socket, CsAddr, Seq+1)
+	after 2000 ->
+			  %%log_io("timeout", []),
+			  zlogc_loop(Socket, CsAddr, Seq)
 	end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,11 +131,9 @@ get_id_trace(Id) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Log calling backtrace to file
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-log_st() ->
-	log_st(0).
 
-log_st(Num) ->
-	log_file("~w ~p ~n", [?LINE, (catch 1 div Num)]).
+get_st() ->
+	erlang:process_info(self(), current_stacktrace).
 
 log_by_id(Id, Fmt, Args) ->
 	case get_id_trace(Id) of
@@ -128,14 +157,21 @@ log_dallas(Fmt, Args) ->
 
 %% log to /tmp/zlog
 log_file(Fmt, Args) ->
-	Str = io_lib:format("~s: " ++ Fmt, [make_timestamp() | Args]),
-	StrFlat = lists:flatten(Str),
-	os:cmd("echo '" ++ StrFlat ++ "' >> /tmp/zlog").
+	{ok, IoDevice} = file:open("/tmp/zlog", [write,append]),
+	FmtWithNewLine =
+		case lists:suffix("~n", Fmt) of
+			true ->
+				Fmt;
+			false ->
+				Fmt ++ "~n"
+		end,
+	io:fwrite(IoDevice, "~s: " ++ FmtWithNewLine, [make_timestamp() | Args]),
+	file:close(IoDevice).
 
 %% log to zlogd (c application)
 log_udp(Fmt, Args) ->
 	init(),
-	Str = io_lib:format("~s: " ++ Fmt, [make_timestamp() | Args]),
+	Str = io_lib:format("~s ~s: " ++ Fmt, [node(), make_timestamp() | Args]),
 	StrFlat = lists:flatten(Str),
 	?ZLOGC_PROC ! StrFlat.
 
@@ -151,25 +187,7 @@ make_timestamp() ->
 						[Month,Day,Year,Hour,Minute,Second,MilliSec]),
 	lists:flatten(Str).
 
-get_local_dpn_list() ->
-	{ok, LocalHostName} = inet:gethostname(),
-	[{all_dpns, AllDpnList}] = ets:lookup(arch_db, all_dpns),
-	LocalDpnIdList = lists:foldr(
-		fun({DpnId, _RawOrOtp, HostName, _Port}, AccIn) ->
-			case HostName =:= LocalHostName of
-				true ->
-					[DpnId | AccIn];
-				false ->
-					AccIn
-			end
-		end, [], AllDpnList),
-	LocalDpnIdList.
-
-is_local_dp(DpId) ->
-	LocalDpnList = get_local_dpn_list(),
-	[DpInfo] = ets:lookup(arch_db, {dp, DpId}),
-	{{dp, DpId}, {_, DpnId, _, _CapList}} = DpInfo,
-	lists:any(
-	  	fun(EntryDpnId) -> 
-			EntryDpnId =:= DpnId
-		end, LocalDpnList).
+main(Args) ->
+	log_file("erlang zlogc file: ~w", [Args]),
+	log_udp("erlang zlogc udp: ~w", [Args]),
+	ok.

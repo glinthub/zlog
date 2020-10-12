@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cp -uv client/c/zlogc.h  /repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlogc.h
+cp -uv client/c/zlogc.c  /repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlogc.c
+cp -uv client/c/zlogc.h  /repo/ezohenz/ltt_ng/src/zlogc.h
+cp -uv client/c/zlogc.c  /repo/ezohenz/ltt_ng/src/main/zlogc.c
+cp -uv client/erl/zlogc.hrl  /repo/ezohenz/lts/app/sims/mme/erl/include/zlogc.hrl
+cp -uv client/erl/zlogc.erl  /repo/ezohenz/lts/app/sims/mme/erl/src/zlogc.erl
+cp -uv client/go/src/zlogc/zlogc.go /repo/ezohenz/lts/infra/dpnode/golang/src/utils/zlogc/zlogc.go
+
+

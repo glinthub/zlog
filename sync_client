@@ -1,8 +1,0 @@
-#!/bin/bash
-
-cp /repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlog.h \
-	/repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlogc.c \
-	/repo/ezohenz/lts/app/sims/mme/erl/src/zlogc.erl \
-	/repo/ezohenz/lts/infra/dpnode/golang/src/utils/zlog/zlogc.go \
-	files/
-

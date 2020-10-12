@@ -1,5 +1,16 @@
 #!/bin/bash
 
-gcc -lpthread files/zlogd.c -o zlogd &&
-gcc -DMAIN=main files/zlogc.c -o zlogc &&
-cp -v zlogc zlogd /lab/testtools/dallas/testRelease/ezohenz/tools/
+#### zlogd
+gcc -lpthread server/zlogd.c -o bin/zlogd &&
+
+#### zlogc_app_c
+gcc -DMAIN=main client/c/zlogc.c -o bin/zlogc_app_c &&
+
+#### zlogc_app_go
+GOPATH=`pwd`/client/go go build -o bin/zlogc_app_go client/go/zlogc_app.go
+
+#### zlogc.beam
+erlc client/erl/zlogc.erl &&
+mv zlogc.beam bin/ &&
+
+cp -v bin/* /lab/testtools/dallas/testRelease/ezohenz/tools/
