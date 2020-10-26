@@ -167,12 +167,36 @@ void zlog_timedelta_init()
 	clock_gettime(CLOCK_REALTIME, &zlog_ts);
 }
 
-int zlog_timedelta_rec()
+int zlog_timedelta(struct timespec *ts1, struct timespec *ts2)  //return microseconds
 {
-    struct timespec ts = zlog_ts;
-	clock_gettime(CLOCK_REALTIME, &zlog_ts);
-	return (zlog_ts.tv_sec - ts.tv_sec) * 1000000 + 
-		(zlog_ts.tv_nsec - ts.tv_nsec)/1000;
+    int delta = (ts2->tv_sec - ts1->tv_sec) * 1000000 +
+                (ts2->tv_nsec - ts1->tv_nsec)/1000;
+    return delta;
+}
+
+static struct timespec zlog_ts_ratelimit;
+int zlog_ratelimited(int interval)
+{
+    static int initiated = 0;
+    if (!initiated)
+    {
+        initiated = 1;
+        clock_gettime(CLOCK_REALTIME, &zlog_ts_ratelimit);
+        return 0;
+    }
+
+    struct timespec ts2;
+    clock_gettime(CLOCK_REALTIME, &ts2);
+    int delta = zlog_timedelta(&zlog_ts_ratelimit, &ts2);
+	if (delta >= interval * 1000000)
+	{
+		zlog_ts_ratelimit = ts2;
+		return 0;
+	}
+	else
+	{
+    	return 1;
+	}
 }
 
 int MAIN(int argc, char *argv[]) {
@@ -182,5 +206,11 @@ int MAIN(int argc, char *argv[]) {
 	zlog_file("c zlogc file: %s\n", msg); 
 	zlog_udp("c zlogc udp: %s\n", msg); 
 	zlog_dump((unsigned char*)msg, strlen(msg), zlog_udp);
+	int i;
+	for (i=0; i<10; i++) {
+		if (!zlog_ratelimited(2))
+			zlog_udp("c zlogc udp (ratelimited): %s\n", msg);
+		sleep(1);
+	}
 	return 0;
 }

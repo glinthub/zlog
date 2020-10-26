@@ -1,26 +1,26 @@
 package zlogc
- 
+
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
-	"time"
-	"runtime"
 	"path"
+	"runtime"
+	"strconv"
 	"strings"
+	"time"
 )
- 
+
 func checkError(err error) {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
- 
-func make_text(format string, a...interface{}) string {
+
+func make_text(format string, a ...interface{}) string {
 	timestamp := time.Now().String()
 	timestamp = timestamp[:23]
 	hostname, _ := os.Hostname()
@@ -28,7 +28,7 @@ func make_text(format string, a...interface{}) string {
 	file = path.Base(file)
 	pid := os.Getpid()
 	text := fmt.Sprintf(format, a...)
-	text = fmt.Sprintf("%v %v %v ln %v pid %v: " + text, 
+	text = fmt.Sprintf("%v %v %v ln %v pid %v: "+text,
 		timestamp, hostname, file, line, pid)
 	if text[len(text)-1] != '\n' {
 		text = text + "\n"
@@ -73,7 +73,7 @@ func CleanLoopbackAddress() {
 	//output, err := exec.Command("cat", "t.txt").Output()
 	lines := strings.Split(string(output), "\n")
 	//fmt.Printf("%v\n", lines)
-	for _,line := range lines {
+	for _, line := range lines {
 		line = strings.TrimLeft(line, " ")
 		if strings.HasPrefix(line, "inet") {
 			//fmt.Printf("%s \n", line)
@@ -94,16 +94,16 @@ func CleanLoopbackAddress() {
 }
 
 func TestMain() {
-    var text string
-    var host string
-    var port int
+	var text string
+	var host string
+	var port int
 
-    flag.StringVar(&text, "t", "", "")
-    flag.StringVar(&host, "h", "127.0.0.1", "")
-    flag.IntVar(&port, "p", 8888, "")
-    flag.Parse()
+	flag.StringVar(&text, "t", "", "")
+	flag.StringVar(&host, "h", "127.0.0.1", "")
+	flag.IntVar(&port, "p", 8888, "")
+	flag.Parse()
 
-    fmt.Printf("text=%v host=%v port=%v\n", text, host, port)
+	fmt.Printf("text=%v host=%v port=%v\n", text, host, port)
 	Log_udp(host, port, "golang zlogc udp: %v\n", text)
 	Log_file("golang zlogc file: %v \n", text)
 	Log_file("golang zlogc file without newline")

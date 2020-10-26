@@ -10,6 +10,7 @@ int zlog_file(const char *fmt, ...);
 int zlog_udp(const char *fmt, ...);
 void zlog_timedelta_init();
 int zlog_timedelta_rec();
+int zlog_ratelimited(int);
 void zlog_dump(unsigned char * buf_ptr, int len, int (*print_func)(const char *format, ...));
 
 #define HERE printf("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__)

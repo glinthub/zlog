@@ -1,0 +1,11 @@
+#!/bin/bash
+
+diff -q /repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlogc.h client/c/zlogc.h 
+diff -q /repo/ezohenz/lts/infra/dpnode/c/src/application_framework/zlogc.c client/c/zlogc.c 
+diff -q /repo/ezohenz/ltt_ng/src/zlogc.h client/c/zlogc.h 
+diff -q /repo/ezohenz/ltt_ng/src/main/zlogc.c client/c/zlogc.c 
+diff -q /repo/ezohenz/lts/app/sims/mme/erl/include/zlogc.hrl client/erl/zlogc.hrl 
+diff -q /repo/ezohenz/lts/app/sims/mme/erl/src/zlogc.erl client/erl/zlogc.erl 
+diff -q /repo/ezohenz/lts/infra/dpnode/golang/src/utils/zlogc/zlogc.go client/go/src/zlogc/zlogc.go
+
+

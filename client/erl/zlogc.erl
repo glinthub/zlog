@@ -18,7 +18,6 @@
 		 main/1,
 		 log_null/2, 
 		 log_io/2, 
-		 log_dallas/2, 
 		 log_file/2, 
 		 log_udp/2, 
 		 log_by_id/3,
